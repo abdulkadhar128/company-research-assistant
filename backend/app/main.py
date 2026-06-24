@@ -1,21 +1,24 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.research import router as research_router
 
 app = FastAPI(
     title="Company Research Assistant API",
-    description="Backend API for the Company Research Assistant",
     version="1.0.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(research_router)
 
 
 @app.get("/")
 def root():
-    return {
-        "message": "Company Research Assistant API is running 🚀"
-    }
-
-
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy"
-    }
+    return {"message": "Company Research Assistant API"}
