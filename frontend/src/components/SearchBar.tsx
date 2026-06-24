@@ -8,7 +8,7 @@ interface SearchBarProps {
     onResult: (data: {
         company: string;
         status: string;
-        message: string;
+        message: string | null;
     }) => void;
 }
 
@@ -63,11 +63,10 @@ function SearchBar({ onSearchStart, onResult }: SearchBarProps) {
             />
 
             <motion.button
-                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSearch}
                 disabled={loading || !company.trim()}
-                className="group flex h-14 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 font-semibold text-white shadow-lg shadow-blue-500/30 transition-all hover:shadow-blue-500/50 disabled:opacity-70 disabled:hover:shadow-blue-500/30"
+                className="group flex h-14 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 font-semibold text-white shadow-xl shadow-blue-500/30 transition-all hover:scale-105 disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-xl"
             >
                 {loading ? (
                     <>
