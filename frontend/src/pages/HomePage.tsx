@@ -4,16 +4,28 @@ import { motion } from "framer-motion";
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
 import ResearchProgress from "../components/ResearchProgress";
+import ExportActions from "../components/ExportActions";
 import AccountPlan from "../components/AccountPlan";
+import SavedAccounts from "../components/SavedAccounts";
 import Footer from "../components/Footer";
+import { useSavedAccounts } from "../store/useSavedAccounts";
 
 function HomePage() {
     const [result, setResult] = useState<any>(null);
     const [isResearching, setIsResearching] = useState(false);
+    const { addAccount } = useSavedAccounts();
 
     const handleResult = (data: any) => {
         setResult(data);
         setIsResearching(false);
+        if (data && data.status === "success") {
+            addAccount(data);
+        }
+    };
+
+    const handleSearchStart = () => {
+        setResult(null);      // clear old result so progress resets
+        setIsResearching(true);
     };
 
     return (
@@ -70,7 +82,7 @@ function HomePage() {
                             className="mx-auto flex max-w-4xl justify-center"
                         >
                             <SearchBar 
-                                onSearchStart={() => setIsResearching(true)}
+                                onSearchStart={handleSearchStart}
                                 onResult={handleResult} 
                             />
                         </motion.div>
@@ -82,11 +94,13 @@ function HomePage() {
                     <div className="grid gap-8 lg:grid-cols-12">
                         {/* Left Panel: Progress */}
                         <div className="lg:col-span-4">
-                            <div className="sticky top-28">
+                            <div className="sticky top-28 space-y-6">
                                 <ResearchProgress 
                                     isResearching={isResearching} 
                                     hasResult={!!result} 
                                 />
+                                <ExportActions visible={!!result} result={result} />
+                                <SavedAccounts onSelect={setResult} />
                             </div>
                         </div>
 

@@ -15,22 +15,10 @@ router = APIRouter(
     tags=["Research"],
 )
 
-# Simple in-memory cache to save API credits during testing
-_research_cache = {}
-
 @router.post("/", response_model=ResearchResponse)
 async def research_company(request: ResearchRequest):
     company = request.company
     
-    # Check cache first
-    if company in _research_cache:
-        return ResearchResponse(
-            company=company,
-            status="success",
-            message="Loaded from cache",
-            data=_research_cache[company]
-        )
-
     try:
         # 1. Tavily Search
         tavily_data = research_company_tavily(company)
@@ -51,9 +39,6 @@ async def research_company(request: ResearchRequest):
                 message="Failed to generate structured data from OpenAI."
             )
             
-        # Cache the result
-        _research_cache[company] = structured_data
-
         return ResearchResponse(
             company=company,
             status="success",

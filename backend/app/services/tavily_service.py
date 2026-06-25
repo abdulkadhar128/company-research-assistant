@@ -26,6 +26,7 @@ def research_company_tavily(company_name: str) -> dict:
     1. Official website
     2. Latest news
     3. Competitors
+    4. Recent milestones & events (2024-2026)
     """
     client = get_tavily_client()
     if not client:
@@ -40,7 +41,8 @@ def research_company_tavily(company_name: str) -> dict:
         "official_website": None,
         "news": [],
         "competitors": [],
-        "general_info": ""
+        "general_info": "",
+        "recent_events": []
     }
 
     try:
@@ -56,18 +58,21 @@ def research_company_tavily(company_name: str) -> dict:
             results["official_website"] = res_website["results"][0]["url"]
             results["general_info"] += f"About: {res_website['results'][0]['content']}\n"
 
-        # Search 2: Latest News
+        # Search 2: Latest News (last 30 days)
         res_news = client.search(
-            query=f"Latest news and updates about {company_name}", 
+            query=f"Latest news 2026 {company_name}",
             search_depth="advanced",
+            topic="news",
+            days=30,
             include_images=False,
-            max_results=3
+            max_results=6
         )
         for r in res_news.get("results", []):
             results["news"].append({
                 "title": r.get("title", ""),
                 "url": r.get("url", ""),
-                "content": r.get("content", "")
+                "content": r.get("content", ""),
+                "published_date": r.get("published_date", "")
             })
 
         # Search 3: Competitors
@@ -78,6 +83,22 @@ def research_company_tavily(company_name: str) -> dict:
         )
         for r in res_competitors.get("results", []):
             results["competitors"].append(r.get("content", ""))
+
+        # Search 4: Recent milestones & events (2024-2026)
+        res_events = client.search(
+            query=f"{company_name} milestones achievements expansion launches 2024 2025 2026",
+            search_depth="advanced",
+            topic="news",
+            days=730,
+            include_images=False,
+            max_results=5
+        )
+        for r in res_events.get("results", []):
+            results["recent_events"].append({
+                "title": r.get("title", ""),
+                "content": r.get("content", ""),
+                "published_date": r.get("published_date", "")
+            })
 
     except Exception as e:
         print(f"Tavily search error for {company_name}: {e}")
