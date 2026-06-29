@@ -2,12 +2,14 @@ from fastapi import APIRouter
 import openai
 from app.services.tavily_service import research_company_tavily
 from app.services.firecrawl_service import scrape_company_website
-from app.services.openai_service import generate_account_plan
+from app.services.openai_service import generate_account_plan, generate_company_comparison
 
 from app.schemas.research import (
     ResearchRequest,
     ResearchResponse,
-    AccountPlanOutput
+    AccountPlanOutput,
+    ComparisonRequest,
+    ComparisonResponse
 )
 
 router = APIRouter(
@@ -63,4 +65,60 @@ async def research_company(request: ResearchRequest):
             company=company,
             status="error",
             message=f"Error: An unexpected error occurred: {str(e)}"
+        )
+
+@router.post("/compare", response_model=ComparisonResponse)
+async def compare_companies(request: ComparisonRequest):
+    company_a = request.company_a
+    company_b = request.company_b
+    
+    try:
+        # 1. Tavily Search for both companies
+        tavily_a = research_company_tavily(company_a)
+        tavily_b = research_company_tavily(company_b)
+        
+        # 2. Firecrawl Scrape for both (if website found)
+        firecrawl_a = "No website found to scrape."
+        website_a = tavily_a.get("official_website")
+        if website_a:
+            firecrawl_a = scrape_company_website(website_a)
+            
+        firecrawl_b = "No website found to scrape."
+        website_b = tavily_b.get("official_website")
+        if website_b:
+            firecrawl_b = scrape_company_website(website_b)
+            
+        # 3. OpenAI synthesis for comparison
+        structured_comparison = generate_company_comparison(
+            company_a, company_b,
+            tavily_a, tavily_b,
+            firecrawl_a, firecrawl_b
+        )
+        
+        if not structured_comparison:
+            return ComparisonResponse(
+                status="error",
+                message="Failed to generate structured comparison from OpenAI."
+            )
+            
+        return ComparisonResponse(
+            status="success",
+            message="Comparison complete.",
+            data=structured_comparison
+        )
+        
+    except openai.RateLimitError:
+        return ComparisonResponse(
+            status="error",
+            message="Error: Your OpenAI API key has insufficient quota. Please check your billing details."
+        )
+    except openai.AuthenticationError:
+        return ComparisonResponse(
+            status="error",
+            message="Error: Invalid OpenAI API key. Please check your .env file."
+        )
+    except Exception as e:
+        return ComparisonResponse(
+            status="error",
+            message=f"Error generating comparison: {str(e)}"
         )

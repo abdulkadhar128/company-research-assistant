@@ -18,7 +18,7 @@ function HomePage() {
     const handleResult = (data: any) => {
         setResult(data);
         setIsResearching(false);
-        if (data && data.status === "success") {
+        if (data && data.status === "success" && !data.is_comparison) {
             addAccount(data);
         }
     };
@@ -99,7 +99,7 @@ function HomePage() {
                                     isResearching={isResearching} 
                                     hasResult={!!result} 
                                 />
-                                <ExportActions visible={!!result} result={result} />
+                                <ExportActions visible={!!result && !result.is_comparison} result={result} />
                                 <SavedAccounts onSelect={setResult} />
                             </div>
                         </div>

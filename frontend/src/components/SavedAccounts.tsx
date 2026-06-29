@@ -20,6 +20,7 @@ export default function SavedAccounts({ onSelect }: Props) {
             
             <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
                 {accounts.map((account) => {
+                    if (!account || !account.company) return null;
                     const domain = account.data?.official_website 
                         ? account.data.official_website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
                         : `${account.company.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;

@@ -1,10 +1,11 @@
 import { 
     Building2, FileText, Target, Activity, 
-    Lightbulb, ShieldAlert, LineChart, Briefcase, Rocket, Globe, Newspaper, ArrowRight, History, User
+    Lightbulb, ShieldAlert, LineChart, Briefcase, Rocket, Globe, Newspaper, ArrowRight, History, User,
+    Sparkles, Coins, TrendingUp, Handshake, Award, Flag, Cpu
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import type { ResearchResponse } from "../services/research";
+import type { ResearchResponse, Source } from "../services/research";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -36,12 +37,245 @@ function Section({ icon: Icon, title, children, delay, className = "" }: { icon:
     );
 }
 
+function SourcesList({ sources }: { sources?: Source[] }) {
+    if (!sources || sources.length === 0) return null;
+    
+    return (
+        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 select-none">
+                <Globe size={11} className="text-slate-400" />
+                <span>Sources & Citations</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+                {sources.map((src, i) => {
+                    const cleanDomain = src.source_name;
+                    return (
+                        <a 
+                            key={i} 
+                            href={src.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2.5 p-2 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 hover:bg-blue-50/30 dark:hover:bg-blue-950/10 hover:border-blue-200 dark:hover:border-blue-900/30 transition-all duration-200 group"
+                        >
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                                <Globe size={11} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    {src.title}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                                    <span className="truncate">{cleanDomain}</span>
+                                    {src.published_date && (
+                                        <>
+                                            <span>•</span>
+                                            <span>{src.published_date}</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </a>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function UnavailablePlaceholder({ message = "Information unavailable" }: { message?: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 my-2">
+            <ShieldAlert className="text-slate-400 dark:text-slate-600 mb-2.5" size={24} />
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                {message}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 select-none">
+                No verified source documents were found containing this information.
+            </p>
+        </div>
+    );
+}
+
+function isUnavailable(val: any): boolean {
+    if (!val) return true;
+    if (typeof val === 'string' && val.trim().toLowerCase() === 'information unavailable') {
+        return true;
+    }
+    return false;
+}
+
+interface ComparisonProps {
+    result: any;
+}
+
+function CompanyComparisonDashboard({ result }: ComparisonProps) {
+    if (result.status === "error" || !result.data) {
+        return (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-3xl border border-red-200/60 dark:border-red-900/30 bg-red-50 dark:bg-red-950/20 p-8 shadow-xl shadow-red-200/40 dark:shadow-none transition-colors duration-300"
+            >
+                <div className="flex items-center gap-3 mb-4">
+                    <ShieldAlert className="text-red-500" size={24} />
+                    <h2 className="text-2xl font-bold text-red-700 dark:text-red-400">Comparison Failed</h2>
+                </div>
+                <p className="text-red-600 dark:text-red-300">{result.message}</p>
+            </motion.div>
+        );
+    }
+
+    const { data } = result;
+    const { company_a, company_b } = data;
+
+    function ComparisonSectionCard({ 
+        icon: Icon, 
+        title, 
+        sectionData, 
+        delay 
+    }: { 
+        icon: any; 
+        title: string; 
+        sectionData: any;
+        delay: number;
+    }) {
+        return (
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay, duration: 0.5 }}
+                className="group mt-6 overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all hover:shadow-md dark:shadow-none"
+            >
+                <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 px-6 py-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        <Icon size={20} />
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight text-slate-800 dark:text-slate-100">{title}</h3>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="p-5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/30 dark:bg-slate-900/30">
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 select-none">
+                                {company_a}
+                            </h4>
+                            <div className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-line">
+                                {sectionData.company_a_val}
+                            </div>
+                        </div>
+
+                        <div className="p-5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/30 dark:bg-slate-900/30">
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 select-none">
+                                {company_b}
+                            </h4>
+                            <div className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-line">
+                                {sectionData.company_b_val}
+                            </div>
+                        </div>
+                    </div>
+
+                    {sectionData.comparison_synthesis && (
+                        <div className="p-5 rounded-xl border border-blue-100/50 dark:border-blue-900/30 bg-gradient-to-r from-blue-50/30 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/10">
+                            <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2 select-none">
+                                <Sparkles size={14} />
+                                <span>AI Comparison Synthesis</span>
+                            </div>
+                            <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+                                {sectionData.comparison_synthesis}
+                            </p>
+                        </div>
+                    )}
+
+                    <SourcesList sources={sectionData.sources} />
+                </div>
+            </motion.div>
+        );
+    }
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/40 dark:shadow-none transition-colors duration-300"
+        >
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                    <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {company_a} <span className="text-slate-400 dark:text-slate-600 font-medium">vs</span> {company_b}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                        <span className="flex w-max items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-700 dark:text-blue-400">
+                            <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400" />
+                            Side-by-Side Comparison Complete
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-2 space-y-6">
+                <ComparisonSectionCard 
+                    icon={Building2} 
+                    title="Overview Comparison" 
+                    sectionData={data.overview} 
+                    delay={0.1} 
+                />
+                <ComparisonSectionCard 
+                    icon={Activity} 
+                    title="Market Position" 
+                    sectionData={data.market_position} 
+                    delay={0.15} 
+                />
+                <ComparisonSectionCard 
+                    icon={ShieldAlert} 
+                    title="SWOT Comparison" 
+                    sectionData={data.swot} 
+                    delay={0.2} 
+                />
+                <ComparisonSectionCard 
+                    icon={Target} 
+                    title="Competitor Analysis" 
+                    sectionData={data.competitors} 
+                    delay={0.25} 
+                />
+                <ComparisonSectionCard 
+                    icon={TrendingUp} 
+                    title="Growth Potential" 
+                    sectionData={data.growth_potential} 
+                    delay={0.3} 
+                />
+                <ComparisonSectionCard 
+                    icon={History} 
+                    title="Timeline Comparison" 
+                    sectionData={data.timeline} 
+                    delay={0.35} 
+                />
+                <ComparisonSectionCard 
+                    icon={Lightbulb} 
+                    title="Opportunities" 
+                    sectionData={data.opportunities} 
+                    delay={0.4} 
+                />
+                <ComparisonSectionCard 
+                    icon={ShieldAlert} 
+                    title="Risks" 
+                    sectionData={data.risks} 
+                    delay={0.45} 
+                />
+            </div>
+        </motion.div>
+    );
+}
+
 function AccountPlan({ result }: Props) {
     const [logoError, setLogoError] = useState(false);
 
     useEffect(() => {
         setLogoError(false);
     }, [result?.company]);
+
+    if (result && result.is_comparison) {
+        return <CompanyComparisonDashboard result={result} />;
+    }
 
     if (!result) {
         return (
@@ -150,110 +384,253 @@ function AccountPlan({ result }: Props) {
                         </div>
                         <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">Executive Summary</h3>
                     </div>
-                    <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-300 transition-colors">
-                        {data.executive_summary || "No executive summary available."}
-                    </p>
+                    {isUnavailable(data.executive_summary) ? (
+                        <UnavailablePlaceholder message="Executive Summary is unavailable." />
+                    ) : (
+                        <>
+                            <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-300 transition-colors">
+                                {data.executive_summary}
+                            </p>
+                            <SourcesList sources={data.executive_summary_sources} />
+                        </>
+                    )}
                 </motion.div>
 
                 {data.timeline && data.timeline.length > 0 && (() => {
-                    const sorted = [...data.timeline]
-                        .map(item => ({ ...item, yr: parseInt(item.year) }))
-                        .filter(item => !isNaN(item.yr))
-                        .sort((a, b) => a.yr - b.yr);
+                    interface EventDetail {
+                        title: string;
+                        description: string;
+                        category?: string;
+                        source?: Source;
+                    }
 
-                    if (sorted.length === 0) return null;
+                    const getCategoryIcon = (category?: string) => {
+                        switch (category?.toLowerCase()) {
+                            case 'founded':
+                                return <Flag className="w-4 h-4 text-amber-500" />;
+                            case 'product':
+                            case 'product launch':
+                                return <Rocket className="w-4 h-4 text-sky-500" />;
+                            case 'acquisition':
+                                return <Handshake className="w-4 h-4 text-emerald-500" />;
+                            case 'leadership':
+                                return <User className="w-4 h-4 text-violet-500" />;
+                            case 'financial':
+                            case 'financial milestone':
+                                return <Coins className="w-4 h-4 text-yellow-500" />;
+                            case 'ai':
+                            case 'ai innovation':
+                            case 'ai / technology':
+                                return <Sparkles className="w-4 h-4 text-purple-500" />;
+                            case 'expansion':
+                                return <Globe className="w-4 h-4 text-indigo-500" />;
+                            case 'partnership':
+                                return <ArrowRight className="w-4 h-4 text-blue-500" />;
+                            default:
+                                return <Briefcase className="w-4 h-4 text-blue-500" />;
+                        }
+                    };
 
-                    const minYear = sorted[0].yr;
-                    const maxYear = sorted[sorted.length - 1].yr;
+                    const getCategoryBadgeClasses = (category?: string) => {
+                        const base = "inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ";
+                        switch (category?.toLowerCase()) {
+                            case 'founded':
+                                return base + "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-amber-700/10 dark:ring-amber-500/20";
+                            case 'product':
+                            case 'product launch':
+                                return base + "bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 ring-sky-700/10 dark:ring-sky-500/20";
+                            case 'acquisition':
+                                return base + "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-emerald-700/10 dark:ring-emerald-500/20";
+                            case 'leadership':
+                                return base + "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 ring-violet-700/10 dark:ring-violet-500/20";
+                            case 'financial':
+                            case 'financial milestone':
+                                return base + "bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 ring-yellow-700/10 dark:ring-yellow-500/20";
+                            case 'ai':
+                            case 'ai innovation':
+                            case 'ai / technology':
+                                return base + "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 ring-purple-700/10 dark:ring-purple-500/20";
+                            case 'expansion':
+                                return base + "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 ring-indigo-700/10 dark:ring-indigo-500/20";
+                            case 'partnership':
+                                return base + "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-700/10 dark:ring-blue-500/20";
+                            default:
+                                return base + "bg-slate-50 dark:bg-slate-500/10 text-slate-700 dark:text-slate-400 ring-slate-700/10 dark:ring-slate-500/20";
+                        }
+                    };
+
+                    const grouped: { [year: number]: EventDetail[] } = {};
+                    data.timeline.forEach((item) => {
+                        const yr = parseInt(item.year);
+                        if (isNaN(yr)) return;
+                        if (!grouped[yr]) {
+                            grouped[yr] = [];
+                        }
+                        grouped[yr].push({
+                            title: item.title || "Milestone",
+                            description: item.description || item.event || "",
+                            category: item.category,
+                            source: item.source
+                        });
+                    });
+
+                    const eventYears = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+                    if (eventYears.length === 0 || isUnavailable(data.timeline[0]?.description) || isUnavailable(data.timeline[0]?.title)) {
+                        return (
+                            <Section icon={History} title="Company Timeline" delay={0.25}>
+                                <UnavailablePlaceholder message="Timeline is unavailable." />
+                            </Section>
+                        );
+                    }
+
+                    const minYear = eventYears[0];
+                    const maxYear = eventYears[eventYears.length - 1];
                     const span = Math.max(maxYear - minYear, 1);
 
-                    // Interval rules
+                    // Interval rules:
+                    // - 0-10 years: 2-year intervals
+                    // - 11-30 years: 4-year intervals
+                    // - 31-70 years: 10-year intervals
+                    // - >70 years: 20-year intervals
                     const interval = span <= 10 ? 2 : span <= 30 ? 4 : span <= 70 ? 10 : 20;
 
                     // Generate axis ticks: always include minYear, interval-aligned ticks, and maxYear
-                    const ticks: number[] = [minYear];
+                    const ticksSet = new Set<number>();
+                    ticksSet.add(minYear);
                     let t = Math.ceil(minYear / interval) * interval;
                     while (t < maxYear) {
-                        if (t > minYear) ticks.push(t);
+                        if (t > minYear) ticksSet.add(t);
                         t += interval;
                     }
-                    if (ticks[ticks.length - 1] !== maxYear) ticks.push(maxYear);
+                    ticksSet.add(maxYear);
 
-                    // Map a year to a % position across the axis (6% → 94%)
-                    const toPct = (yr: number) => ((yr - minYear) / span) * 88 + 6;
+                    // Union ticks and eventYears to get all displayed years on timeline
+                    const displayYearsSet = new Set<number>();
+                    ticksSet.forEach(y => displayYearsSet.add(y));
+                    eventYears.forEach(y => displayYearsSet.add(y));
+                    const displayYears = Array.from(displayYearsSet).sort((a, b) => a - b);
 
                     return (
                         <Section icon={History} title="Company Timeline" delay={0.25}>
-                            <div className="overflow-x-auto">
-                                <div className="relative" style={{ height: '340px', minWidth: '420px' }}>
-
-                                    {/* Horizontal axis */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '45%',
-                                        left: '6%', right: '6%',
-                                        height: '2px',
-                                        borderRadius: '9999px',
-                                        background: 'linear-gradient(90deg, #60a5fa, #818cf8, #60a5fa)',
-                                        opacity: 0.65,
-                                    }} />
-
-                                    {/* Axis tick marks + year labels */}
-                                    {ticks.map(tick => (
-                                        <div key={tick} style={{ position: 'absolute', left: `${toPct(tick)}%`, top: '45%', transform: 'translateX(-50%)' }}>
-                                            <div style={{ width: '1px', height: '10px', background: '#94a3b8', transform: 'translateY(-50%)', margin: '0 auto', opacity: 0.7 }} />
-                                            <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontFamily: 'monospace', color: '#94a3b8', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
-                                                {tick}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {/* Events */}
-                                    {sorted.map((item, i) => {
-                                        const pos = toPct(item.yr);
-                                        const isAbove = i % 2 === 0;
-                                        // Edge-aware card anchoring
-                                        const anchor = pos < 18 ? 'left' : pos > 82 ? 'right' : 'center';
-                                        const cardStyle: React.CSSProperties = {
-                                            position: 'absolute',
-                                            width: '148px',
-                                            ...(anchor === 'left'   ? { left: '0', transform: 'none' }
-                                              : anchor === 'right'  ? { right: '0', transform: 'none' }
-                                              : { left: '50%', transform: 'translateX(-50%)' }),
-                                            ...(isAbove ? { bottom: '62px' } : { top: '62px' }),
-                                        };
-
+                            <div className="relative mt-4 pl-2 md:pl-0">
+                                <div className="flex flex-col gap-0">
+                                    {displayYears.map((yr, idx) => {
+                                        const isLast = idx === displayYears.length - 1;
+                                        const hasEvents = !!grouped[yr] && grouped[yr].length > 0;
+                                        const isLatestYear = yr === maxYear;
+                                        
                                         return (
-                                            <div key={i} style={{ position: 'absolute', left: `${pos}%`, top: '45%', transform: 'translateX(-50%)' }}>
-                                                {/* Glowing dot */}
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    width: '13px', height: '13px',
-                                                    borderRadius: '50%',
-                                                    background: '#3b82f6',
-                                                    boxShadow: '0 0 0 4px rgba(59,130,246,0.18), 0 0 10px rgba(59,130,246,0.35)',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    zIndex: 10,
-                                                }} />
+                                            <div key={yr} className="grid grid-cols-[30px_1fr] md:grid-cols-[100px_40px_1fr] items-start relative group/row">
+                                                {/* Year - Desktop only (left side) */}
+                                                <div className="hidden md:flex justify-end pr-4 pt-3 font-mono text-sm font-semibold tracking-tight select-none">
+                                                    <span className={isLatestYear ? "text-emerald-500 font-bold" : "text-slate-400 dark:text-slate-500"}>
+                                                        {yr}
+                                                    </span>
+                                                </div>
 
-                                                {/* Connector line */}
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    width: '1px', height: '48px',
-                                                    background: 'linear-gradient(to ' + (isAbove ? 'top' : 'bottom') + ', rgba(99,102,241,0.5), transparent)',
-                                                    left: '0', transform: 'translateX(-50%)',
-                                                    ...(isAbove ? { bottom: '6px' } : { top: '6px' }),
-                                                }} />
+                                                {/* Node Column */}
+                                                <div className="relative flex justify-center items-stretch self-stretch w-full min-h-[90px]">
+                                                    {/* Vertical line segment */}
+                                                    {!isLast && (
+                                                        <div className="absolute top-[24px] bottom-0 left-1/2 w-[2px] bg-slate-200 dark:bg-slate-800/80 -translate-x-1/2" />
+                                                    )}
+                                                    {idx > 0 && (
+                                                        <div className="absolute top-0 h-[24px] left-1/2 w-[2px] bg-slate-200 dark:bg-slate-800/80 -translate-x-1/2" />
+                                                    )}
 
-                                                {/* Event card */}
-                                                <div style={cardStyle} className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 shadow-lg p-2.5">
-                                                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', marginBottom: '4px', fontFamily: 'monospace' }}>{item.year}</div>
-                                                    <div style={{ fontSize: '11px', color: '', lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }} className="text-slate-600 dark:text-slate-300">{item.event}</div>
+                                                    {/* Dot Node */}
+                                                    <div className="absolute top-[16px] z-10 flex items-center justify-center">
+                                                        {hasEvents ? (
+                                                            isLatestYear ? (
+                                                                <div className="relative flex h-5 w-5 items-center justify-center">
+                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border border-white dark:border-slate-900 shadow-md"></span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-3.5 w-3.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 shadow-md ring-2 ring-blue-500/10 group-hover/row:scale-110 transition-transform duration-200" />
+                                                            )
+                                                        ) : (
+                                                            <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 ring-2 ring-transparent group-hover/row:bg-slate-400 dark:group-hover/row:bg-slate-500 transition-colors duration-200" />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Card/Content Column */}
+                                                <div className="pb-8 pl-4 md:pl-6 flex flex-col justify-start">
+                                                    {/* Year - Mobile/Tablet only */}
+                                                    <div className="md:hidden flex items-center gap-2 mb-2 font-mono text-sm font-bold text-blue-500 dark:text-blue-400">
+                                                        <span>{yr}</span>
+                                                        {isLatestYear && (
+                                                            <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+                                                                Latest
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {hasEvents ? (
+                                                        <div className="w-full max-w-[640px] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 p-5 shadow-sm hover:shadow-md dark:shadow-none hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 ease-in-out hover:-translate-y-0.5 group/card relative backdrop-blur-sm">
+                                                            {/* Horizontal connector line (desktop only) */}
+                                                            <div className="hidden md:block absolute top-[24px] -left-[44px] w-[44px] h-[1.5px] bg-slate-200 dark:bg-slate-800/80 group-hover/card:bg-slate-300 dark:group-hover/card:bg-slate-700 transition-colors" />
+
+                                                            {isLatestYear && (
+                                                                <div className="absolute top-4 right-4 hidden md:block">
+                                                                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+                                                                        Latest
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="space-y-4">
+                                                                {grouped[yr].map((eventItem, evIdx) => (
+                                                                    <div key={evIdx} className={evIdx > 0 ? "pt-4 border-t border-slate-100 dark:border-slate-800/60" : ""}>
+                                                                        <div className="flex items-start gap-2.5">
+                                                                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 mt-0.5">
+                                                                                {getCategoryIcon(eventItem.category)}
+                                                                            </div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                                                                                        {eventItem.title}
+                                                                                    </h4>
+                                                                                    {eventItem.category && (
+                                                                                        <span className={getCategoryBadgeClasses(eventItem.category)}>
+                                                                                            {eventItem.category}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                                                    {eventItem.description}
+                                                                                </p>
+                                                                                {eventItem.source && (
+                                                                                    <div className="mt-2.5 flex items-center justify-end select-none">
+                                                                                        <a 
+                                                                                            href={eventItem.source.url} 
+                                                                                            target="_blank" 
+                                                                                            rel="noopener noreferrer" 
+                                                                                            className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200"
+                                                                                        >
+                                                                                            <Globe size={10} className="opacity-75" />
+                                                                                            <span className="truncate max-w-[150px]">{eventItem.source.source_name}</span>
+                                                                                        </a>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="md:hidden flex items-center h-[36px] font-mono text-xs font-semibold text-slate-400 dark:text-slate-600 select-none">
+                                                            {yr}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+                                <SourcesList sources={data.timeline_sources} />
                             </div>
                         </Section>
                     );
@@ -339,13 +716,18 @@ function AccountPlan({ result }: Props) {
                     </Section>
 
                     <Section icon={Target} title="Competitors" delay={0.3}>
-                        {data.competitors && data.competitors.length > 0 ? (
-                            <ul className="list-disc pl-5 space-y-2">
-                                {data.competitors.map((comp, i) => (
-                                    <li key={i}>{comp}</li>
-                                ))}
-                            </ul>
-                        ) : "None found."}
+                        {isUnavailable(data.competitors?.[0]) || !data.competitors || data.competitors.length === 0 ? (
+                            <UnavailablePlaceholder message="Competitors information is unavailable." />
+                        ) : (
+                            <>
+                                <ul className="list-disc pl-5 space-y-2">
+                                    {data.competitors.map((comp, i) => (
+                                        <li key={i}>{comp}</li>
+                                    ))}
+                                </ul>
+                                <SourcesList sources={data.competitors_sources} />
+                            </>
+                        )}
                     </Section>
                 </div>
                 
@@ -362,68 +744,139 @@ function AccountPlan({ result }: Props) {
                 </Section>
                 
                 <Section icon={Newspaper} title="Latest News" delay={0.38}>
-                    {data.latest_news && data.latest_news.length > 0 ? (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {data.latest_news.map((newsItem, i) => {
-                                const isString = typeof newsItem === 'string';
-                                const title = isString ? newsItem : newsItem.title;
-                                const source = isString ? null : newsItem.source;
-                                const date = isString ? null : newsItem.date;
-                                
-                                let url = isString ? null : newsItem.url;
-                                if (url && !url.startsWith('http')) {
-                                    url = `https://${url}`;
-                                }
+                    {isUnavailable(data.latest_news?.[0]?.title) || !data.latest_news || data.latest_news.length === 0 ? (
+                        <UnavailablePlaceholder message="Latest News is unavailable." />
+                    ) : (
+                        <>
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {data.latest_news.map((newsItem, i) => {
+                                    const isString = typeof newsItem === 'string';
+                                    const title = isString ? newsItem : newsItem.title;
+                                    const source = isString ? null : newsItem.source;
+                                    const date = isString ? null : newsItem.date;
+                                    
+                                    let url = isString ? null : newsItem.url;
+                                    if (url && !url.startsWith('http')) {
+                                        url = `https://${url}`;
+                                    }
 
-                                return (
-                                    <div key={i} className="flex flex-col rounded-2xl bg-[#f4f4f5] dark:bg-slate-800/50 p-6 border border-slate-100 dark:border-slate-800 transition-colors h-full">
-                                        <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 leading-snug">{title}</h4>
-                                        <div className="flex flex-col gap-1 mt-auto">
-                                            {source && <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{source}</p>}
-                                            {date && <p className="text-sm text-slate-400 dark:text-slate-500 mb-3">{date}</p>}
-                                            {url && (
-                                                <a href={url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 w-max">
-                                                    Read Article <ArrowRight size={14} />
-                                                </a>
+                                    return (
+                                        <div key={i} className="flex flex-col rounded-2xl bg-[#f4f4f5] dark:bg-slate-800/50 p-6 border border-slate-100 dark:border-slate-800 transition-colors h-full">
+                                            <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 leading-snug">{title}</h4>
+                                            {!isString && newsItem.summary && (
+                                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+                                                    {newsItem.summary}
+                                                </p>
                                             )}
+                                            <div className="flex flex-col gap-1 mt-auto">
+                                                {source && <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{source}</p>}
+                                                {date && <p className="text-sm text-slate-400 dark:text-slate-500 mb-3">{date}</p>}
+                                                {url && (
+                                                    <a href={url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 w-max">
+                                                        Read Article <ArrowRight size={14} />
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : "None found."}
+                                    );
+                                })}
+                            </div>
+                            <SourcesList sources={data.news_sources} />
+                        </>
+                    )}
                 </Section>
 
                 <div className="grid gap-6 md:grid-cols-2 items-stretch">
                     <Section icon={ShieldAlert} title="SWOT Analysis" delay={0.4}>
-                        {data.swot ? (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">Strengths</span>
-                                    <ul className="list-disc pl-4 mt-1 text-sm">
-                                        {data.swot.strengths.map((s,i) => <li key={i}>{s}</li>)}
-                                    </ul>
+                        {!data.swot || isUnavailable(data.swot.strengths?.[0]) ? (
+                            <UnavailablePlaceholder message="SWOT Analysis is unavailable." />
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Strengths</span>
+                                        <ul className="mt-2 space-y-3.5">
+                                            {data.swot.strengths.map((item, i) => {
+                                                const isString = typeof item === 'string';
+                                                const stmt = isString ? item : item.statement;
+                                                const ev = isString ? null : item.evidence;
+                                                return (
+                                                    <li key={i} className="text-sm">
+                                                        <div className="font-medium text-slate-800 dark:text-slate-200">{stmt}</div>
+                                                        {ev && (
+                                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-2.5 border-l border-slate-200 dark:border-slate-800 italic leading-relaxed">
+                                                                {ev}
+                                                            </div>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-rose-600 dark:text-rose-400">Weaknesses</span>
+                                        <ul className="mt-2 space-y-3.5">
+                                            {data.swot.weaknesses.map((item, i) => {
+                                                const isString = typeof item === 'string';
+                                                const stmt = isString ? item : item.statement;
+                                                const ev = isString ? null : item.evidence;
+                                                return (
+                                                    <li key={i} className="text-sm">
+                                                        <div className="font-medium text-slate-800 dark:text-slate-200">{stmt}</div>
+                                                        {ev && (
+                                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-2.5 border-l border-slate-200 dark:border-slate-800 italic leading-relaxed">
+                                                                {ev}
+                                                            </div>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-blue-600 dark:text-blue-400">Opportunities</span>
+                                        <ul className="mt-2 space-y-3.5">
+                                            {data.swot.opportunities.map((item, i) => {
+                                                const isString = typeof item === 'string';
+                                                const stmt = isString ? item : item.statement;
+                                                const ev = isString ? null : item.evidence;
+                                                return (
+                                                    <li key={i} className="text-sm">
+                                                        <div className="font-medium text-slate-800 dark:text-slate-200">{stmt}</div>
+                                                        {ev && (
+                                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-2.5 border-l border-slate-200 dark:border-slate-800 italic leading-relaxed">
+                                                                {ev}
+                                                            </div>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-orange-600 dark:text-orange-400">Threats</span>
+                                        <ul className="mt-2 space-y-3.5">
+                                            {data.swot.threats.map((item, i) => {
+                                                const isString = typeof item === 'string';
+                                                const stmt = isString ? item : item.statement;
+                                                const ev = isString ? null : item.evidence;
+                                                return (
+                                                    <li key={i} className="text-sm">
+                                                        <div className="font-medium text-slate-800 dark:text-slate-200">{stmt}</div>
+                                                        {ev && (
+                                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-2.5 border-l border-slate-200 dark:border-slate-800 italic leading-relaxed">
+                                                                {ev}
+                                                            </div>
+                                                        )}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="font-semibold text-rose-600 dark:text-rose-400">Weaknesses</span>
-                                    <ul className="list-disc pl-4 mt-1 text-sm">
-                                        {data.swot.weaknesses.map((s,i) => <li key={i}>{s}</li>)}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-blue-600 dark:text-blue-400">Opportunities</span>
-                                    <ul className="list-disc pl-4 mt-1 text-sm">
-                                        {data.swot.opportunities.map((s,i) => <li key={i}>{s}</li>)}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-orange-600 dark:text-orange-400">Threats</span>
-                                    <ul className="list-disc pl-4 mt-1 text-sm">
-                                        {data.swot.threats.map((s,i) => <li key={i}>{s}</li>)}
-                                    </ul>
-                                </div>
-                            </div>
-                        ) : "Not available."}
+                                <SourcesList sources={data.swot_sources} />
+                            </>
+                        )}
                     </Section>
                 </div>
 
@@ -431,54 +884,61 @@ function AccountPlan({ result }: Props) {
                     data.account_plan.company_overview || data.account_plan.products?.length > 0
                 ) ? (
                     <Section icon={FileText} title="Account Plan" delay={0.6}>
-                        <div className="rounded-2xl bg-[#f4f4f5] dark:bg-slate-800/50 p-6 font-mono text-sm text-slate-800 dark:text-slate-300 shadow-sm transition-colors">
-                            <div className="space-y-6">
-                                {data.account_plan.company_overview && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Company Overview</div>
-                                        <div className="opacity-90">{data.account_plan.company_overview}</div>
+                        {isUnavailable(data.account_plan.company_overview) ? (
+                            <UnavailablePlaceholder message="Account Plan is unavailable." />
+                        ) : (
+                            <>
+                                <div className="rounded-2xl bg-[#f4f4f5] dark:bg-slate-800/50 p-6 font-mono text-sm text-slate-800 dark:text-slate-300 shadow-sm transition-colors">
+                                    <div className="space-y-6">
+                                        {data.account_plan.company_overview && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Company Overview</div>
+                                                <div className="opacity-90">{data.account_plan.company_overview}</div>
+                                            </div>
+                                        )}
+                                        {data.account_plan.products?.length > 0 && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Products</div>
+                                                <ul className="list-disc pl-5 opacity-90 space-y-1">
+                                                    {data.account_plan.products.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {data.account_plan.stakeholders?.length > 0 && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Stakeholders</div>
+                                                <ul className="list-disc pl-5 opacity-90 space-y-1">
+                                                    {data.account_plan.stakeholders.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {data.account_plan.challenges?.length > 0 && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Challenges</div>
+                                                <ul className="list-disc pl-5 opacity-90 space-y-1">
+                                                    {data.account_plan.challenges.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {data.account_plan.opportunities?.length > 0 && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Opportunities</div>
+                                                <ul className="list-disc pl-5 opacity-90 space-y-1">
+                                                    {data.account_plan.opportunities.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {data.account_plan.outreach_strategy && (
+                                            <div>
+                                                <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Outreach Strategy</div>
+                                                <div className="opacity-90">{data.account_plan.outreach_strategy}</div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                {data.account_plan.products?.length > 0 && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Products</div>
-                                        <ul className="list-disc pl-5 opacity-90 space-y-1">
-                                            {data.account_plan.products.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                                {data.account_plan.stakeholders?.length > 0 && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Stakeholders</div>
-                                        <ul className="list-disc pl-5 opacity-90 space-y-1">
-                                            {data.account_plan.stakeholders.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                                {data.account_plan.challenges?.length > 0 && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Challenges</div>
-                                        <ul className="list-disc pl-5 opacity-90 space-y-1">
-                                            {data.account_plan.challenges.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                                {data.account_plan.opportunities?.length > 0 && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Opportunities</div>
-                                        <ul className="list-disc pl-5 opacity-90 space-y-1">
-                                            {data.account_plan.opportunities.map((p: string, i: number) => <li key={i}>{p}</li>)}
-                                        </ul>
-                                    </div>
-                                )}
-                                {data.account_plan.outreach_strategy && (
-                                    <div>
-                                        <div className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Outreach Strategy</div>
-                                        <div className="opacity-90">{data.account_plan.outreach_strategy}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                </div>
+                                <SourcesList sources={data.account_plan_sources} />
+                            </>
+                        )}
                     </Section>
                 ) : (
                     <Section icon={FileText} title="Account Plan" delay={0.6}>
